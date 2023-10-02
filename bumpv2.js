@@ -17,6 +17,7 @@ const MAXRND = 120000;
 
 // Define a variable for the timeout
 let t;
+let alive;
 
 client.on('ready', async () => {
     console.clear();
@@ -25,6 +26,7 @@ client.on('ready', async () => {
     const channel = client.channels.cache.get(CHANNEL_ID);
     channel.sendSlash(USER_ID, 'bump');
     console.log(`${getTime()} | > attempted bump`);
+    keepAlive();
 });
 
 //if cooldown is detected, wait for cooldown to end and then bump
@@ -38,6 +40,7 @@ client.on('messageCreate', (msg) => {
 
         // Handle and check if the message contains a cooldown time in minutes
         if ((x = regm.exec(embed.description)) != null) {
+            keepAlive();
             let DELAYED_CD = (x[1] * 60000) + getRndInteger(MINRND, MAXRND);
             console.log(`${getTime()} | > on cooldown, next bump in ${x[1]} minutes ~> ${getTime(DELAYED_CD)}`);
             t = setTimeout(() => {
@@ -54,6 +57,7 @@ client.on('messageCreate', (msg) => {
 
         // Handle and check if the message contains a cooldown time in seconds
         if ((x = regs.exec(embed.description)) != null) {
+            keepAlive();
             let DELAYED_CD = (x[1] * 1000) + getRndInteger(MINRND, MAXRND);
             console.log(`${getTime()} | > on cooldown, next bump in ${x[1]} seconds ~> ${getTime(DELAYED_CD)}`);
             t = setTimeout(() => {
@@ -75,6 +79,7 @@ client.on('messageCreate', (msg) => {
     if (msg == null || msg.author == null) return;
     if (msg.channel.id != CHANNEL_ID || msg.author.id != USER_ID) return;
     for (let i = 0; i < msg.embeds.length; i++) {
+        keepAlive();
         let embed = msg.embeds[i];
         if (embed.description.includes('Bump done')) {
             if (msg.interaction.user != client.user.id) {
@@ -112,6 +117,19 @@ client.on('messageCreate', (msg) => {
     };
 });
 
+function keepAlive() {
+    clearTimeout(alive);
+    alive = setTimeout(() => {
+        try {
+            client.channels.cache.get(CHANNEL_ID).sendSlash(USER_ID, 'bump');
+            console.log(`${getTime()} | > attempted bump`);
+            keepAlive();
+        }
+        catch (err) {
+            console.log(err);
+        }
+    }, 2*BASE_CD);
+}
 // Function to get a random integer between min and max
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
@@ -121,7 +139,7 @@ function getRndInteger(min, max) {
 function getTime(ms) {
     const now = DateTime.local().setZone('Europe/Berlin');
     const newTime = now.plus({ milliseconds: ms });
-    const formattedTime = newTime.toFormat('[HH:mm:ss]');
+    const formattedTime = newTime.toFormat('[dd HH:mm:ss]');
     return formattedTime
 };
 
