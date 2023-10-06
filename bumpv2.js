@@ -13,7 +13,7 @@ const USER_ID = '302050872383242240';
 // Define the base cooldown, minimal random and maximal random time in milliseconds
 const BASE_CD = 7200000;
 const MINRND = 61000;
-const MAXRND = 120000;
+const MAXRND = 1800000;
 
 // Define a variable for the timeout
 let t;
@@ -117,7 +117,7 @@ client.on('messageCreate', (msg) => {
     };
 });
 
-function keepAlive() {
+async function keepAlive() {
     clearTimeout(alive);
     alive = setTimeout(() => {
         try {
