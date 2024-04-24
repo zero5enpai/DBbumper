@@ -1,5 +1,5 @@
-# DBbumper
-Automated Disboard bumper.
+# Bumper
+Automated bumper.
 Figure the code or dont use it
 
 ### Disclaimer: 
