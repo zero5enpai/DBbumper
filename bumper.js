@@ -19,6 +19,8 @@ const MAXRND = 1800000;
 
 let t;
 let DELAYED_CD = BASE_CD;
+let goal;
+let channel;
 
 client.on('ready', async () => {
     console.clear();
@@ -26,12 +28,15 @@ client.on('ready', async () => {
     console.log(`${getTime()} | > ready <`);
 
     client.user.setStatus('idle');
-    const channel = client.channels.cache.get(CHANNEL_ID);
-    await channel.sendSlash(BOT_TARGET_ID, 'bump');
-    console.log(`${getTime()} | > attempted bump`);
+    channel = client.channels.cache.get(CHANNEL_ID);
+    try {
+        channel.sendSlash(BOT_TARGET_ID, 'bump');
+        console.log(`${getTime()} | > attempted bump`);
+    }
+    catch (err) {
+        console.log(err);
+    }
     keepAlive();
-    richPresence();
-
 });
 
 //if cooldown is detected, wait for cooldown to end and then bump
@@ -63,7 +68,7 @@ client.on('messageCreate', (msg) => {
                 });
                 t = setTimeout(() => {
                     try {
-                        msg.channel.sendSlash(BOT_TARGET_ID, 'bump');
+                        channel.sendSlash(BOT_TARGET_ID, 'bump');
                         console.log(`${getTime()} | > attempted bump`);
                     }
                     catch (err) {
@@ -76,7 +81,7 @@ client.on('messageCreate', (msg) => {
                 console.log(`${getTime()} | > bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                 t = setTimeout(() => {
                     try {
-                        msg.channel.sendSlash(BOT_TARGET_ID, 'bump');
+                        channel.sendSlash(BOT_TARGET_ID, 'bump');
                         console.log(`${getTime()} | > attempted bump`);
                     }
                     catch (err) {
@@ -89,7 +94,6 @@ client.on('messageCreate', (msg) => {
 });
 
 function handleCooldown(delay) {
-    const channel = client.channels.cache.get(CHANNEL_ID);
     let DELAYED_CD = updateDelayedCD(delay);
     console.log(`${getTime()} | > on cooldown, next bump in ${getTime(DELAYED_CD)}`);
     t = setTimeout(() => {
@@ -104,16 +108,41 @@ function handleCooldown(delay) {
 
 async function richPresence() {
 
-    console.log(`${getTime()} | > set rich presence <`);
+    let start = dateDelay();
 
-    const spotify = new Discord.SpotifyRPC(client)
+    if ((goal - start) > 86400000) {
+        
+        setTimeout(() => {
+
+            console.log(`${getTime()} | > setting rich presence <`);
+
+            spotify = new Discord.SpotifyRPC(client)
+                .setAssetsLargeImage('spotify:ab67616100005174448c3cbb2515fadba5f12673')
+                .setAssetsLargeText('0x003')
+                .setAssetsSmallImage('spotify:ab6761610000f178e51d591c4a6cff195f11e150')
+                .setDetails('Managing bumping')
+                .setState('orbiting...')
+                .setStartTimestamp(Date.now())
+                .setEndTimestamp(goal)
+                .setSongId('4EZvIph0m6dAAhUZqIGscv')
+                .setAlbumId('2TnRMOKYUDygY2LYqCAzi0')
+                .setArtistIds(['6x9CKUBQ96VjXxKgGE5hIw'])
+            client.user.setPresence({
+                activities: [spotify]
+            });
+        }, (start + 86400000) - Date.now());
+    }
+
+    console.log(`${getTime()} | > setting rich presence <`);
+
+    spotify = new Discord.SpotifyRPC(client)
         .setAssetsLargeImage('spotify:ab67616100005174448c3cbb2515fadba5f12673')
         .setAssetsLargeText('0x003')
         .setAssetsSmallImage('spotify:ab6761610000f178e51d591c4a6cff195f11e150')
         .setDetails('Managing bumping')
         .setState('orbiting...')
-        .setStartTimestamp(dateDelay())
-        .setEndTimestamp(Date.now() + DELAYED_CD)
+        .setStartTimestamp(start)
+        .setEndTimestamp(goal)
         .setSongId('4EZvIph0m6dAAhUZqIGscv')
         .setAlbumId('2TnRMOKYUDygY2LYqCAzi0')
         .setArtistIds(['6x9CKUBQ96VjXxKgGE5hIw'])
@@ -130,6 +159,7 @@ function dateDelay() {
 
 function updateDelayedCD(delay) {
     DELAYED_CD = delay + getRndInteger(MINRND, MAXRND);
+    goal = Date.now() + DELAYED_CD;
     richPresence();
     return DELAYED_CD;
 }
@@ -138,7 +168,7 @@ async function keepAlive() {
     setTimeout(() => {
         setInterval(() => {
             try {
-                client.channels.cache.get(CHANNEL_ID);
+                channel = client.channels.cache.get(CHANNEL_ID);
             }
             catch (err) {
                 console.log(err);
@@ -157,5 +187,9 @@ function getTime(ms) {
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 };
+
+process.on('uncaughtException', (err) => {
+    console.error('There was an uncaught error', err);
+});
 
 client.login('TOKEN');
