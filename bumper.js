@@ -2,6 +2,9 @@ const Discord = require('discord.js-selfbot-v13');
 const { DateTime } = require('luxon');
 const client = new Discord.Client({ checkUpdate: false });
 
+const fs = require('fs');
+const path = require('path');
+
 // Define regular expressions for matching cooldown times in minutes and seconds
 const regm = /Please wait(?: another | )([0-9]{1,3}) minutes/gm;
 const regs = /Please wait(?: another | )([0-9]{1,3}) seconds/gm;
@@ -17,21 +20,30 @@ const BASE_CD = 7200000;
 const MINRND = 61000;
 const MAXRND = 1800000;
 
+// Error logging | you have to monitor space by your own, delete if unwanted
+const errorDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(errorDir)){
+    fs.mkdirSync(errorDir);
+}
+const errorFile = path.join(errorDir, `${getTime()}.txt`);
+const logStream = fs.createWriteStream(errorFile, { flags: 'a' });
+
+
 let t;
 let DELAYED_CD = BASE_CD;
 let goal;
-let channel;
+let channel = client.channels.cache.get(CHANNEL_ID);
 
 client.on('ready', async () => {
     console.clear();
 
-    console.log(`${getTime()} | > ready <`);
+    console.log(`> ready <`);
 
     client.user.setStatus('idle');
     channel = client.channels.cache.get(CHANNEL_ID);
     try {
         channel.sendSlash(BOT_TARGET_ID, 'bump');
-        console.log(`${getTime()} | > attempted bump`);
+        console.log(`> attempted bump`);
     }
     catch (err) {
         console.log(err);
@@ -64,12 +76,12 @@ client.on('messageCreate', (msg) => {
                 let DELAYED_CD = updateDelayedCD(BASE_CD);
                 clearTimeout(t);
                 client.users.fetch(msg.interaction.user).then(target => {
-                    console.log(`${getTime()} | > bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
+                    console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                 });
                 t = setTimeout(() => {
                     try {
                         channel.sendSlash(BOT_TARGET_ID, 'bump');
-                        console.log(`${getTime()} | > attempted bump`);
+                        console.log(`> attempted bump`);
                     }
                     catch (err) {
                         console.log(err);
@@ -78,11 +90,11 @@ client.on('messageCreate', (msg) => {
             }
             else if (msg.interaction.user == client.user.id) {
                 let DELAYED_CD = updateDelayedCD(BASE_CD);
-                console.log(`${getTime()} | > bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
+                console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                 t = setTimeout(() => {
                     try {
                         channel.sendSlash(BOT_TARGET_ID, 'bump');
-                        console.log(`${getTime()} | > attempted bump`);
+                        console.log(`> attempted bump`);
                     }
                     catch (err) {
                         console.log(err);
@@ -95,11 +107,11 @@ client.on('messageCreate', (msg) => {
 
 function handleCooldown(delay) {
     let DELAYED_CD = updateDelayedCD(delay);
-    console.log(`${getTime()} | > on cooldown, next bump in ${getTime(DELAYED_CD)}`);
+    console.log(`> on cooldown, next bump in ${getTime(DELAYED_CD)}`);
     t = setTimeout(() => {
         try {
             channel.sendSlash(BOT_TARGET_ID, 'bump');
-            console.log(`${getTime()} | > attempted bump`);
+            console.log(`> attempted bump`);
         } catch (err) {
             console.log(err);
         }
@@ -114,7 +126,7 @@ async function richPresence() {
         
         setTimeout(() => {
 
-            console.log(`${getTime()} | > setting rich presence <`);
+            console.log(`> setting rich presence <`);
 
             spotify = new Discord.SpotifyRPC(client)
                 .setAssetsLargeImage('spotify:ab67616100005174448c3cbb2515fadba5f12673')
@@ -133,7 +145,7 @@ async function richPresence() {
         }, (start + 86400000) - Date.now());
     }
 
-    console.log(`${getTime()} | > setting rich presence <`);
+    console.log(`> setting rich presence <`);
 
     spotify = new Discord.SpotifyRPC(client)
         .setAssetsLargeImage('spotify:ab67616100005174448c3cbb2515fadba5f12673')
@@ -189,7 +201,16 @@ function getRndInteger(min, max) {
 };
 
 process.on('uncaughtException', (err) => {
-    console.error('There was an uncaught error', err);
+    console.log(`Caught exception: ${err}\n`);
 });
+
+process.on('unhandledRejection', (reason, p) => {
+    console.log(`Unhandled Rejection at: Promise ${p}, reason: ${reason}\n`);
+});
+
+console.log = function(msg) {
+    logStream.write(`${getTime()} | ${msg}\n`);
+    process.stdout.write(`${getTime()} | ${msg}\n`);
+};
 
 client.login('TOKEN');
