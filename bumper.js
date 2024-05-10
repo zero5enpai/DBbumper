@@ -19,10 +19,11 @@ const TZ = 'Europe/Berlin'; // Replace with your timezone (https://www.iana.org/
 const BASE_CD = 7200000;
 const MINRND = 61000;
 const MAXRND = 1800000;
+const cmd = 'bump';
 
 // Error logging | you have to monitor space by your own, delete if unwanted
 const errorDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(errorDir)){
+if (!fs.existsSync(errorDir)) {
     fs.mkdirSync(errorDir);
 }
 const errorFile = path.join(errorDir, `${getTime()}.txt`);
@@ -41,14 +42,15 @@ client.on('ready', async () => {
 
     client.user.setStatus('idle');
     channel = client.channels.cache.get(CHANNEL_ID);
-    try {
-        channel.sendSlash(BOT_TARGET_ID, 'bump');
-        console.log(`> attempted bump`);
-    }
-    catch (err) {
-        console.log(err);
-    }
-    keepAlive();
+    sendingSlash();
+});
+
+client.on('rateLimit', (info) => {
+    console.log(`Rate limit hit ${info.timeDifference ? info.timeDifference : info.timeout ? info.timeout : 'Unknown timeout '}`);
+    console.log(`Rate limit limit: ${info.limit}`);
+    console.log(`Rate limit method: ${info.method}`);
+    console.log(`Rate limit path: ${info.path}`);
+    console.log(`Rate limit route: ${info.route}`);
 });
 
 //if cooldown is detected, wait for cooldown to end and then bump
@@ -79,26 +81,14 @@ client.on('messageCreate', (msg) => {
                     console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                 });
                 t = setTimeout(() => {
-                    try {
-                        channel.sendSlash(BOT_TARGET_ID, 'bump');
-                        console.log(`> attempted bump`);
-                    }
-                    catch (err) {
-                        console.log(err);
-                    }
+                    sendingSlash();
                 }, DELAYED_CD);
             }
             else if (msg.interaction.user == client.user.id) {
                 let DELAYED_CD = updateDelayedCD(BASE_CD);
                 console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                 t = setTimeout(() => {
-                    try {
-                        channel.sendSlash(BOT_TARGET_ID, 'bump');
-                        console.log(`> attempted bump`);
-                    }
-                    catch (err) {
-                        console.log(err);
-                    }
+                    sendingSlash();
                 }, DELAYED_CD);
             }
         }
@@ -109,12 +99,7 @@ function handleCooldown(delay) {
     let DELAYED_CD = updateDelayedCD(delay);
     console.log(`> on cooldown, next bump in ${getTime(DELAYED_CD)}`);
     t = setTimeout(() => {
-        try {
-            channel.sendSlash(BOT_TARGET_ID, 'bump');
-            console.log(`> attempted bump`);
-        } catch (err) {
-            console.log(err);
-        }
+        sendingSlash();
     }, DELAYED_CD);
 }
 
@@ -123,7 +108,7 @@ async function richPresence() {
     let start = dateDelay();
 
     if ((goal - start) > 86400000) {
-        
+
         setTimeout(() => {
 
             console.log(`> setting rich presence <`);
@@ -176,17 +161,15 @@ function updateDelayedCD(delay) {
     return DELAYED_CD;
 }
 
-async function keepAlive() {
-    setTimeout(() => {
-        setInterval(() => {
-            try {
-                channel = client.channels.cache.get(CHANNEL_ID);
-            }
-            catch (err) {
-                console.log(err);
-            }
-        }, 2 * BASE_CD);
-    }, 2 * BASE_CD);
+function sendingSlash() {
+    try {
+        channel.sendSlash(BOT_TARGET_ID, cmd);
+        console.log(`> attempted bump`);
+        console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB`);
+    }
+    catch (err) {
+        console.log(err);
+    }
 }
 
 function getTime(ms) {
@@ -208,7 +191,7 @@ process.on('unhandledRejection', (reason, p) => {
     console.log(`Unhandled Rejection at: Promise ${p}, reason: ${reason}\n`);
 });
 
-console.log = function(msg) {
+console.log = function (msg) {
     logStream.write(`${getTime()} | ${msg}\n`);
     process.stdout.write(`${getTime()} | ${msg}\n`);
 };
