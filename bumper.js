@@ -19,6 +19,7 @@ const TZ = 'Europe/Berlin'; // Replace with your timezone (https://www.iana.org/
 const BASE_CD = 7200000;
 const MINRND = 61000;
 const MAXRND = 1800000;
+const DAY_IN_MS = 86400000;
 const cmd = 'bump';
 
 // Error logging | you have to monitor space by your own, delete if unwanted
@@ -75,7 +76,7 @@ client.on('messageCreate', (msg) => {
         // Check if bump is successful or stolen
         if (embed.description.includes('Bump done')) {
             if (msg.interaction.user != client.user.id) {
-                let DELAYED_CD = updateDelayedCD(BASE_CD);
+                updateDelayedCD(BASE_CD);
                 clearTimeout(t);
                 client.users.fetch(msg.interaction.user).then(target => {
                     console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
@@ -85,7 +86,7 @@ client.on('messageCreate', (msg) => {
                 }, DELAYED_CD);
             }
             else if (msg.interaction.user == client.user.id) {
-                let DELAYED_CD = updateDelayedCD(BASE_CD);
+                updateDelayedCD(BASE_CD);
                 console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                 t = setTimeout(() => {
                     sendingSlash();
@@ -96,18 +97,19 @@ client.on('messageCreate', (msg) => {
 });
 
 function handleCooldown(delay) {
-    let DELAYED_CD = updateDelayedCD(delay);
+    updateDelayedCD(delay);
     console.log(`> on cooldown, next bump in ${getTime(DELAYED_CD)}`);
     t = setTimeout(() => {
         sendingSlash();
     }, DELAYED_CD);
 }
 
-async function richPresence() {
+
+function richPresence() {
 
     let start = dateDelay();
 
-    if ((goal - start) > 86400000) {
+    if ((goal - start) > DAY_IN_MS) {
 
         setTimeout(() => {
 
@@ -127,7 +129,7 @@ async function richPresence() {
             client.user.setPresence({
                 activities: [spotify]
             });
-        }, (start + 86400000) - Date.now());
+        }, (start + DAY_IN_MS) - Date.now());
     }
 
     console.log(`> setting rich presence <`);
