@@ -20,7 +20,7 @@ const logStream = fs.createWriteStream(errorFile, { flags: 'a' });
 
 let x = 10000;
 let t;
-let DELAYED_CD = config.DAY_IN_MS;
+let DELAYED_CD = config.BASE_CD;
 let goal;
 let channel = client.channels.cache.get(config.CHANNEL_ID);
 
