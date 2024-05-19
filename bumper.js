@@ -65,7 +65,7 @@ client.on('messageCreate', (msg) => {
             // Check if bump is successful or stolen
             else if (embed.description.includes('Bump done')) {
                 if (msg.interaction.user != client.user.id) {
-                    updateDelayedCD(config.DAY_IN_MS, "orbiting...");
+                    updateDelayedCD(config.BASE_CD, "orbiting...");
                     clearTimeout(t);
                     client.users.fetch(msg.interaction.user).then(target => {
                         console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
@@ -75,7 +75,7 @@ client.on('messageCreate', (msg) => {
                     }, DELAYED_CD);
                 }
                 else if (msg.interaction.user == client.user.id) {
-                    updateDelayedCD(config.DAY_IN_MS, "orbiting...");
+                    updateDelayedCD(config.BASE_CD, "orbiting...");
                     console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                     t = setTimeout(() => {
                         sendingSlash();
