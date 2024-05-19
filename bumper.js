@@ -1,6 +1,7 @@
 const Discord = require('discord.js-selfbot-v13');
 const { DateTime } = require('luxon');
 const client = new Discord.Client({ checkUpdate: false });
+require('dotenv').config();
 
 const fs = require('fs');
 const path = require('path');
@@ -8,19 +9,6 @@ const path = require('path');
 // Define regular expressions for matching cooldown times in minutes and seconds
 const regm = /Please wait(?: another | )([0-9]{1,3}) minutes/gm;
 const regs = /Please wait(?: another | )([0-9]{1,3}) seconds/gm;
-
-// Define constants for targeted channel and bot ID
-const CHANNEL_ID = 'ID';
-const BOT_TARGET_ID = 'ID';
-
-const TZ = 'Europe/Berlin'; // Replace with your timezone (https://www.iana.org/time-zones)
-
-// Define the base cooldown, minimal random and maximal random time in milliseconds
-const BASE_CD = 7200000;
-const MINRND = 61000;
-const MAXRND = 1800000;
-const DAY_IN_MS = 86400000;
-const cmd = 'bump';
 
 // Error logging | you have to monitor space by your own, delete if unwanted
 const errorDir = path.join(__dirname, 'logs');
@@ -30,11 +18,11 @@ if (!fs.existsSync(errorDir)) {
 const errorFile = path.join(errorDir, `${getTime()}.txt`);
 const logStream = fs.createWriteStream(errorFile, { flags: 'a' });
 
-
+let x = 10000;
 let t;
-let DELAYED_CD = BASE_CD;
+let DELAYED_CD = Number(process.env.BASE_CD);
 let goal;
-let channel = client.channels.cache.get(CHANNEL_ID);
+let channel = client.channels.cache.get(process.env.CHANNEL_ID);
 
 client.on('ready', async () => {
     console.clear();
@@ -42,7 +30,7 @@ client.on('ready', async () => {
     console.log(`> ready <`);
 
     client.user.setStatus('idle');
-    channel = client.channels.cache.get(CHANNEL_ID);
+    channel = client.channels.cache.get(process.env.CHANNEL_ID);
     sendingSlash();
 });
 
@@ -57,47 +45,58 @@ client.on('rateLimit', (info) => {
 //if cooldown is detected, wait for cooldown to end and then bump
 client.on('messageCreate', (msg) => {
     if (msg == null || msg.author == null) return;
-    if (msg.channelId != CHANNEL_ID || msg.author.id != BOT_TARGET_ID) return;
+    if (msg.channelId != process.env.CHANNEL_ID || msg.author.id != process.env.BOT_TARGET_ID) return;
 
-    for (let i = 0; i < msg.embeds.length; i++) {
-        let embed = msg.embeds[i];
-        let x;
+    if (msg.embeds.length != 0) {
+        for (let i = 0; i < msg.embeds.length; i++) {
+            let embed = msg.embeds[i];
+            let x;
 
-        // Check for cooldown in minutes
-        if ((x = regm.exec(embed.description)) != null) {
-            handleCooldown(x[1] * 60000);
-        }
-
-        // Check for cooldown in seconds
-        if ((x = regs.exec(embed.description)) != null) {
-            handleCooldown(x[1] * 1000);
-        }
-
-        // Check if bump is successful or stolen
-        if (embed.description.includes('Bump done')) {
-            if (msg.interaction.user != client.user.id) {
-                updateDelayedCD(BASE_CD);
-                clearTimeout(t);
-                client.users.fetch(msg.interaction.user).then(target => {
-                    console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
-                });
-                t = setTimeout(() => {
-                    sendingSlash();
-                }, DELAYED_CD);
+            // Check for cooldown in minutes
+            if ((x = regm.exec(embed.description)) != null) {
+                handleCooldown(x[1] * 60000);
             }
-            else if (msg.interaction.user == client.user.id) {
-                updateDelayedCD(BASE_CD);
-                console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
-                t = setTimeout(() => {
-                    sendingSlash();
-                }, DELAYED_CD);
+
+            // Check for cooldown in seconds
+            else if ((x = regs.exec(embed.description)) != null) {
+                handleCooldown(x[1] * 1000);
+            }
+
+            // Check if bump is successful or stolen
+            else if (embed.description.includes('Bump done')) {
+                if (msg.interaction.user != client.user.id) {
+                    updateDelayedCD(Number(process.env.BASE_CD), "orbiting...");
+                    clearTimeout(t);
+                    client.users.fetch(msg.interaction.user).then(target => {
+                        console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
+                    });
+                    t = setTimeout(() => {
+                        sendingSlash();
+                    }, DELAYED_CD);
+                }
+                else if (msg.interaction.user == client.user.id) {
+                    updateDelayedCD(Number(process.env.BASE_CD), "orbiting...");
+                    console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
+                    t = setTimeout(() => {
+                        sendingSlash();
+                    }, DELAYED_CD);
+                }
+            } else {
+                console.log(`> uncaught embed < \n ${embed.description} \n`);
             }
         }
+    }
+    else if (msg.content.includes("DISBOARD API didn't respond in time!")) {
+        updateDelayedCD(x, "retrying...");
+        console.log("> DISBOARD API didn't respond in time! retrying...")
+        x += 10000;
+    } else {
+        console.log(`> uncaught message < \n ${msg.content} \n`);
     }
 });
 
 function handleCooldown(delay) {
-    updateDelayedCD(delay);
+    updateDelayedCD(delay, "orbiting...");
     console.log(`> on cooldown, next bump in ${getTime(DELAYED_CD)}`);
     t = setTimeout(() => {
         sendingSlash();
@@ -105,11 +104,11 @@ function handleCooldown(delay) {
 }
 
 
-function richPresence() {
+function richPresence(state) {
 
     let start = dateDelay();
 
-    if ((goal - start) > DAY_IN_MS) {
+    if ((goal - start) > Number(process.env.DAY_IN_MS)) {
 
         setTimeout(() => {
 
@@ -120,7 +119,7 @@ function richPresence() {
                 .setAssetsLargeText('0x003')
                 .setAssetsSmallImage('spotify:ab6761610000f178e51d591c4a6cff195f11e150')
                 .setDetails('Managing bumping')
-                .setState('orbiting...')
+                .setState(state)
                 .setStartTimestamp(Date.now())
                 .setEndTimestamp(goal)
                 .setSongId('4EZvIph0m6dAAhUZqIGscv')
@@ -129,7 +128,7 @@ function richPresence() {
             client.user.setPresence({
                 activities: [spotify]
             });
-        }, (start + DAY_IN_MS) - Date.now());
+        }, (start + Number(process.env.DAY_IN_MS)) - Date.now());
     }
 
     console.log(`> setting rich presence <`);
@@ -139,7 +138,7 @@ function richPresence() {
         .setAssetsLargeText('0x003')
         .setAssetsSmallImage('spotify:ab6761610000f178e51d591c4a6cff195f11e150')
         .setDetails('Managing bumping')
-        .setState('orbiting...')
+        .setState(state)
         .setStartTimestamp(start)
         .setEndTimestamp(goal)
         .setSongId('4EZvIph0m6dAAhUZqIGscv')
@@ -151,21 +150,22 @@ function richPresence() {
 }
 
 function dateDelay() {
-    let now = DateTime.local().setZone(TZ);
+    let now = DateTime.local().setZone(process.env.TZ);
     let startOfDay = now.startOf('day');
     return timestamp = startOfDay.ts;
 }
 
-function updateDelayedCD(delay) {
-    DELAYED_CD = delay + getRndInteger(MINRND, MAXRND);
+function updateDelayedCD(delay, state) {
+    if (state != "retrying..." && x != 10000) x = 10000;
+    DELAYED_CD = delay + getRndInteger(Number(process.env.MINRND), Number(process.env.MAXRND));
     goal = Date.now() + DELAYED_CD;
-    richPresence();
+    richPresence(state);
     return DELAYED_CD;
 }
 
 function sendingSlash() {
     try {
-        channel.sendSlash(BOT_TARGET_ID, cmd);
+        channel.sendSlash(process.env.BOT_TARGET_ID, process.env.CMD);
         console.log(`> attempted bump`);
         console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB`);
     }
@@ -175,7 +175,7 @@ function sendingSlash() {
 }
 
 function getTime(ms) {
-    const now = DateTime.local().setZone(TZ);
+    const now = DateTime.local().setZone(process.env.TZ);
     const newTime = now.plus({ milliseconds: ms });
     const formattedTime = newTime.toFormat('[dd HH:mm:ss]');
     return formattedTime
@@ -198,4 +198,4 @@ console.log = function (msg) {
     process.stdout.write(`${getTime()} | ${msg}\n`);
 };
 
-client.login('TOKEN');
+client.login(process.env.TOKEN);
