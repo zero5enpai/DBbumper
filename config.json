@@ -1,0 +1,11 @@
+{
+    "TOKEN": "<User Token>",
+    "CHANNEL_ID": "<Targeted Channel ID>",
+    "BOT_TARGET_ID": "<Targeted Bot ID>",
+    "TZ": "<Your Timezone>",
+    "BASE_CD": 7200000,
+    "MINRND": 61000,
+    "MAXRND": 1800000,
+    "DAY_IN_MS": 86400000,
+    "CMD": "bump"
+}

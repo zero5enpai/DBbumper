@@ -1,7 +1,7 @@
 const Discord = require('discord.js-selfbot-v13');
 const { DateTime } = require('luxon');
 const client = new Discord.Client({ checkUpdate: false });
-require('dotenv').config();
+const config = require('./config.json');
 
 const fs = require('fs');
 const path = require('path');
@@ -20,9 +20,9 @@ const logStream = fs.createWriteStream(errorFile, { flags: 'a' });
 
 let x = 10000;
 let t;
-let DELAYED_CD = Number(process.env.BASE_CD);
+let DELAYED_CD = config.DAY_IN_MS;
 let goal;
-let channel = client.channels.cache.get(process.env.CHANNEL_ID);
+let channel = client.channels.cache.get(config.CHANNEL_ID);
 
 client.on('ready', async () => {
     console.clear();
@@ -30,7 +30,7 @@ client.on('ready', async () => {
     console.log(`> ready <`);
 
     client.user.setStatus('idle');
-    channel = client.channels.cache.get(process.env.CHANNEL_ID);
+    channel = client.channels.cache.get(config.CHANNEL_ID);
     sendingSlash();
 });
 
@@ -45,7 +45,7 @@ client.on('rateLimit', (info) => {
 //if cooldown is detected, wait for cooldown to end and then bump
 client.on('messageCreate', (msg) => {
     if (msg == null || msg.author == null) return;
-    if (msg.channelId != process.env.CHANNEL_ID || msg.author.id != process.env.BOT_TARGET_ID) return;
+    if (msg.channelId != config.CHANNEL_ID || msg.author.id != config.BOT_TARGET_ID) return;
 
     if (msg.embeds.length != 0) {
         for (let i = 0; i < msg.embeds.length; i++) {
@@ -65,7 +65,7 @@ client.on('messageCreate', (msg) => {
             // Check if bump is successful or stolen
             else if (embed.description.includes('Bump done')) {
                 if (msg.interaction.user != client.user.id) {
-                    updateDelayedCD(Number(process.env.BASE_CD), "orbiting...");
+                    updateDelayedCD(config.DAY_IN_MS, "orbiting...");
                     clearTimeout(t);
                     client.users.fetch(msg.interaction.user).then(target => {
                         console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
@@ -75,7 +75,7 @@ client.on('messageCreate', (msg) => {
                     }, DELAYED_CD);
                 }
                 else if (msg.interaction.user == client.user.id) {
-                    updateDelayedCD(Number(process.env.BASE_CD), "orbiting...");
+                    updateDelayedCD(config.DAY_IN_MS, "orbiting...");
                     console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
                     t = setTimeout(() => {
                         sendingSlash();
@@ -108,7 +108,7 @@ function richPresence(state) {
 
     let start = dateDelay();
 
-    if ((goal - start) > Number(process.env.DAY_IN_MS)) {
+    if ((goal - start) > config.DAY_IN_MS) {
 
         setTimeout(() => {
 
@@ -128,7 +128,7 @@ function richPresence(state) {
             client.user.setPresence({
                 activities: [spotify]
             });
-        }, (start + Number(process.env.DAY_IN_MS)) - Date.now());
+        }, (start + config.DAY_IN_MS) - Date.now());
     }
 
     console.log(`> setting rich presence <`);
@@ -150,14 +150,14 @@ function richPresence(state) {
 }
 
 function dateDelay() {
-    let now = DateTime.local().setZone(process.env.TZ);
+    let now = DateTime.local().setZone(config.TZ);
     let startOfDay = now.startOf('day');
     return timestamp = startOfDay.ts;
 }
 
 function updateDelayedCD(delay, state) {
     if (state != "retrying..." && x != 10000) x = 10000;
-    DELAYED_CD = delay + getRndInteger(Number(process.env.MINRND), Number(process.env.MAXRND));
+    DELAYED_CD = delay + getRndInteger(config.MINRND, config.MAXRND);
     goal = Date.now() + DELAYED_CD;
     richPresence(state);
     return DELAYED_CD;
@@ -165,7 +165,7 @@ function updateDelayedCD(delay, state) {
 
 function sendingSlash() {
     try {
-        channel.sendSlash(process.env.BOT_TARGET_ID, process.env.CMD);
+        channel.sendSlash(config.BOT_TARGET_ID, config.CMD);
         console.log(`> attempted bump`);
         console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB`);
     }
@@ -175,7 +175,7 @@ function sendingSlash() {
 }
 
 function getTime(ms) {
-    const now = DateTime.local().setZone(process.env.TZ);
+    const now = DateTime.local().setZone(config.TZ);
     const newTime = now.plus({ milliseconds: ms });
     const formattedTime = newTime.toFormat('[dd HH:mm:ss]');
     return formattedTime
@@ -198,4 +198,4 @@ console.log = function (msg) {
     process.stdout.write(`${getTime()} | ${msg}\n`);
 };
 
-client.login(process.env.TOKEN);
+client.login(config.TOKEN);
