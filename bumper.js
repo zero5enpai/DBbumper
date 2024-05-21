@@ -7,8 +7,9 @@ const fs = require('fs');
 const path = require('path');
 
 // Define regular expressions for matching cooldown times in minutes and seconds
-const regm = /Please wait(?: another | )([0-9]{1,3}) minutes/gm;
-const regs = /Please wait(?: another | )([0-9]{1,3}) seconds/gm;
+const regM = /Please wait(?: another | )([0-9]{1,3}) minutes/gm;
+const regS = /Please wait(?: another | )([0-9]{1,3}) seconds/gm;
+const regE = /[^:]+/;
 
 // Error logging | you have to monitor space by your own, delete if unwanted
 const errorDir = path.join(__dirname, 'logs');
@@ -18,6 +19,7 @@ if (!fs.existsSync(errorDir)) {
 const errorFile = path.join(errorDir, `${getTime()}.txt`);
 const logStream = fs.createWriteStream(errorFile, { flags: 'a' });
 
+let reason;
 let x = 10000;
 let t;
 let DELAYED_CD = config.BASE_CD;
@@ -53,12 +55,12 @@ client.on('messageCreate', (msg) => {
             let x;
 
             // Check for cooldown in minutes
-            if ((x = regm.exec(embed.description)) != null) {
+            if ((x = regM.exec(embed.description)) != null) {
                 handleCooldown(x[1] * 60000);
             }
 
             // Check for cooldown in seconds
-            else if ((x = regs.exec(embed.description)) != null) {
+            else if ((x = regS.exec(embed.description)) != null) {
                 handleCooldown(x[1] * 1000);
             }
 
@@ -68,7 +70,7 @@ client.on('messageCreate', (msg) => {
                     updateDelayedCD(config.BASE_CD, "orbiting...");
                     clearTimeout(t);
                     client.users.fetch(msg.interaction.user).then(target => {
-                        console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
+                        console.log(`> bump stolen by ${target.globalName}(${target.username}), next bump at ${getTime(DELAYED_CD)}`);
                     });
                     t = setTimeout(() => {
                         sendingSlash();
@@ -76,22 +78,29 @@ client.on('messageCreate', (msg) => {
                 }
                 else if (msg.interaction.user == client.user.id) {
                     updateDelayedCD(config.BASE_CD, "orbiting...");
-                    console.log(`> bump successful, next bump in 2 hours ~> ${getTime(DELAYED_CD)}`);
+                    console.log(`> bump successful, next bump at ${getTime(DELAYED_CD)}`);
                     t = setTimeout(() => {
                         sendingSlash();
                     }, DELAYED_CD);
                 }
             } else {
                 console.log(`> uncaught embed < \n ${embed.description} \n`);
+                client.users.setStatus('dnd');
+                richPresence("ERROR");
             }
         }
     }
-    else if (msg.content.includes("DISBOARD API didn't respond in time!")) {
+    else if (msg.content.includes("Please try again later")) {
         updateDelayedCD(x, "retrying...");
-        console.log("> DISBOARD API didn't respond in time! retrying...")
+        reason = regE.exec(msg.content);
+        if (reason) console.log(`> ${reason[0]} retrying...`);
+        else console.log(`> retrying...`);
         x += 10000;
-    } else {
+    }
+    else {
         console.log(`> uncaught message < \n ${msg.content} \n`);
+        client.users.setStatus('dnd');
+        richPresence("ERROR");
     }
 });
 
