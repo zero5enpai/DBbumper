@@ -93,8 +93,11 @@ client.on('messageCreate', (msg) => {
     else if (msg.content.includes("Please try again later")) {
         updateDelayedCD(x, "retrying...");
         reason = regE.exec(msg.content);
-        if (reason) console.log(`> ${reason[0]} retrying...`);
+        if (reason) console.log(`> ${reason[0]}retrying...`);
         else console.log(`> retrying...`);
+        t = setTimeout(() => {
+            sendingSlash();
+        }, DELAYED_CD);
         x += 10000;
     }
     else {
