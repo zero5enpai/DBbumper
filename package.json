@@ -1,0 +1,28 @@
+{
+  "name": "bumper",
+  "version": "1.0.0",
+  "description": "auto bumper",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zerox003/Bumper.git"
+  },
+  "keywords": [
+    "discord",
+    "disboard",
+    "selfbot"
+  ],
+  "author": "zero",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zerox003/Bumper/issues"
+  },
+  "homepage": "https://github.com/zerox003/Bumper#readme",
+  "dependencies": {
+    "discord.js-selfbot-v13": "^3.4.0",
+    "luxon": "^3.5.0"
+  }
+}

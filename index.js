@@ -128,7 +128,7 @@ function richPresence(state) {
 
             spotify = new Discord.SpotifyRPC(client)
                 .setAssetsLargeImage('spotify:ab67616100005174448c3cbb2515fadba5f12673')
-                .setAssetsLargeText('0x003')
+                .setAssetsLargeText('<unknown>')
                 .setAssetsSmallImage('spotify:ab6761610000f178e51d591c4a6cff195f11e150')
                 .setDetails('Managing bumping')
                 .setState(state)
@@ -147,7 +147,7 @@ function richPresence(state) {
 
     spotify = new Discord.SpotifyRPC(client)
         .setAssetsLargeImage('spotify:ab67616100005174448c3cbb2515fadba5f12673')
-        .setAssetsLargeText('0x003')
+        .setAssetsLargeText('<unknown>')
         .setAssetsSmallImage('spotify:ab6761610000f178e51d591c4a6cff195f11e150')
         .setDetails('Managing bumping')
         .setState(state)
