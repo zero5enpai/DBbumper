@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/zerox003/Bumper#readme",
   "dependencies": {
+    "bumper": "file:",
     "discord.js-selfbot-v13": "^3.4.0",
     "luxon": "^3.5.0"
   }

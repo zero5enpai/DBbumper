@@ -1,7 +1,7 @@
 const Discord = require('discord.js-selfbot-v13');
 const { DateTime } = require('luxon');
 const client = new Discord.Client({ checkUpdate: false });
-const config = require('./config.json');
+const config = require(`${__dirname}/config.json`);
 
 const fs = require('fs');
 const path = require('path');
